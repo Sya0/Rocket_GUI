@@ -4,7 +4,9 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT += core gui \
+	charts \
+	serialport
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
