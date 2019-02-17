@@ -6,6 +6,7 @@
 #include <QSerialPortInfo>
 #include <QDebug>
 #include <QtWidgets>
+#include <QTimer>
 
 namespace Ui {
 class MainWindow;
@@ -18,6 +19,10 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+
+private slots:
+    void temp_plot();
+    void realtimeData();
 
 private:
     Ui::MainWindow *ui;
