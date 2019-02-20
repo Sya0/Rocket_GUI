@@ -23,6 +23,7 @@ public:
 private slots:
     void temp_plot();
     void realtimeData();
+    QByteArray ReadSerial();
 
 private:
     Ui::MainWindow *ui;

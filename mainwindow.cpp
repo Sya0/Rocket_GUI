@@ -6,11 +6,12 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    ui->temp_lcd->display("-----");
     MainWindow::temp_plot();    // GUI başlangıcında çizdirmek için constructure fonksiyonunda plot fonksiyonlarını çağır
 
     stm_available = false;
     stm_port_name = "";
-    serial = new QSerialPort;
+    serial = new QSerialPort(this);
 
   /*  qDebug() << "Number of available ports: " << QSerialPortInfo::availablePorts().length();
     foreach(const QSerialPortInfo &serialPortInfo, QSerialPortInfo::availablePorts()){
@@ -42,18 +43,21 @@ MainWindow::MainWindow(QWidget *parent) :
         serial->setParity(QSerialPort::NoParity);
         serial->setStopBits(QSerialPort::OneStop);
         serial->setFlowControl(QSerialPort::NoFlowControl);
-        serial->write("Selam");
+        //serial->write("Selam");
+        // This signal is emitted once every time new data is available for reading from the device's current read channel
+        connect(serial, SIGNAL(readyRead()), this, SLOT(ReadSerial()));
     }
     else{
         QMessageBox::warning(this, "Port error", "Couldn't find the port");
     }
 }
 
-void MainWindow::temp_plot(){
-    ui->temperature_plot->addGraph(); // blue line
-    ui->temperature_plot->graph(0)->setPen(QPen(QColor(40, 110, 255)));
-    ui->temperature_plot->addGraph(); // red line
-    ui->temperature_plot->graph(1)->setPen(QPen(QColor(255, 110, 40)));
+void MainWindow::temp_plot()
+{
+    ui->temperature_plot->addGraph();
+    ui->temperature_plot->graph(0)->setPen(QPen(QColor(40, 110, 255))); // blue line
+    ui->temperature_plot->addGraph();
+    ui->temperature_plot->graph(1)->setPen(QPen(QColor(255, 110, 40))); // red line
 
     QSharedPointer<QCPAxisTickerTime> timeTicker(new QCPAxisTickerTime);
     timeTicker->setTimeFormat("%s");
@@ -68,13 +72,14 @@ void MainWindow::temp_plot(){
     // setup a timer that repeatedly calls MainWindow::realtimeData:
     QTimer *dataTimer = new QTimer(this);
     connect(dataTimer, SIGNAL(timeout()), this, SLOT(realtimeData()));
-    dataTimer->start(1000); // Interval 0 means to refresh as fast as possible
+    dataTimer->start(100); // Interval 0 means to refresh as fast as possible
 }
 
-void MainWindow::realtimeData(){
+void MainWindow::realtimeData()
+{
     static QTime time(QTime::currentTime());
     // calculate two new data points:
-    double key = time.elapsed()/1000.0; // time elapsed since start of demo, in seconds
+    double key = time.elapsed()/500.0; // time elapsed since start of demo, in half seconds
     static double lastPointKey = 0;
     if (key-lastPointKey > 1) // at most add point every 1 s
     {
@@ -94,7 +99,7 @@ void MainWindow::realtimeData(){
     static double lastFpsKey;
     static int frameCount;
     ++frameCount;
-    if (key-lastFpsKey > 2) // average fps over 2 seconds
+    if (key-lastFpsKey > 1) // average fps over 1 seconds
     {
       ui->statusBar->showMessage(
             QString("%1 FPS, Total Data points: %2")
@@ -104,6 +109,14 @@ void MainWindow::realtimeData(){
       lastFpsKey = key;
       frameCount = 0;
     }
+}
+
+QByteArray MainWindow::ReadSerial()
+{
+    QByteArray data = serial->readAll();
+    qDebug() << data;
+
+    return data;
 }
 
 MainWindow::~MainWindow()
