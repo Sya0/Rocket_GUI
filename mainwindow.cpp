@@ -56,8 +56,6 @@ void MainWindow::temp_plot()
 {
     ui->temperature_plot->addGraph();
     ui->temperature_plot->graph(0)->setPen(QPen(QColor(40, 110, 255))); // blue line
-    ui->temperature_plot->addGraph();
-    ui->temperature_plot->graph(1)->setPen(QPen(QColor(255, 110, 40))); // red line
 
     QSharedPointer<QCPAxisTickerTime> timeTicker(new QCPAxisTickerTime);
     timeTicker->setTimeFormat("%s");
@@ -85,10 +83,8 @@ void MainWindow::realtimeData()
     {
       // add data to lines:
       ui->temperature_plot->graph(0)->addData(key, qSin(key)+qrand()/(double)RAND_MAX*1*qSin(key/0.3843));
-      ui->temperature_plot->graph(1)->addData(key, qCos(key)+qrand()/(double)RAND_MAX*0.5*qSin(key/0.4364));
       // rescale value (vertical) axis to fit the current data:
       ui->temperature_plot->graph(0)->rescaleValueAxis();
-      ui->temperature_plot->graph(1)->rescaleValueAxis(true);
       lastPointKey = key;
     }
     // make key axis range scroll with the data (at a constant range size of 8):
@@ -104,19 +100,24 @@ void MainWindow::realtimeData()
       ui->statusBar->showMessage(
             QString("%1 FPS, Total Data points: %2")
             .arg(frameCount/(key-lastFpsKey), 0, 'f', 0)
-            .arg(ui->temperature_plot->graph(0)->data()->size()+ui->temperature_plot->graph(1)->data()->size())
+            .arg(ui->temperature_plot->graph(0)->data()->size())
             , 0);
       lastFpsKey = key;
       frameCount = 0;
     }
 }
 
-QByteArray MainWindow::ReadSerial()
+void MainWindow::ReadSerial()
 {
     QByteArray data = serial->readAll();
     qDebug() << data;
 
-    return data;
+    //return data;
+}
+
+void MainWindow::WriteData(const QByteArray &data)
+{
+    serial->write(data);
 }
 
 MainWindow::~MainWindow()
