@@ -7,7 +7,9 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     ui->temp_lcd->display("-----");
-    MainWindow::temp_plot();    // GUI başlangıcında çizdirmek için constructure fonksiyonunda plot fonksiyonlarını çağır
+    temp_plot();    // add plot func. to constructor to plot graphs at the beginning
+    pres_plot();
+    TickTimer(100);
 
     stm_available = false;
     stm_port_name = "";
@@ -55,7 +57,13 @@ MainWindow::MainWindow(QWidget *parent) :
 void MainWindow::temp_plot()
 {
     ui->temperature_plot->addGraph();
-    ui->temperature_plot->graph(0)->setPen(QPen(QColor(40, 110, 255))); // blue line
+    ui->temperature_plot->graph(0)->setPen(QPen(QColor(255, 40, 60))); // red line
+    ui->temperature_plot->xAxis->setLabel("Time");
+    ui->temperature_plot->yAxis->setLabel("Value");
+
+    ui->temperature_plot->legend->setVisible(true);
+    ui->temperature_plot->legend->setBrush(QColor(255, 255, 255, 150));
+    ui->temperature_plot->graph(0)->setName("Temperature");
 
     QSharedPointer<QCPAxisTickerTime> timeTicker(new QCPAxisTickerTime);
     timeTicker->setTimeFormat("%s");
@@ -66,11 +74,31 @@ void MainWindow::temp_plot()
     // make left and bottom axes transfer their ranges to right and top axes:
     connect(ui->temperature_plot->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->temperature_plot->xAxis2, SLOT(setRange(QCPRange)));
     connect(ui->temperature_plot->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->temperature_plot->yAxis2, SLOT(setRange(QCPRange)));
+}
 
-    // setup a timer that repeatedly calls MainWindow::realtimeData:
-    QTimer *dataTimer = new QTimer(this);
-    connect(dataTimer, SIGNAL(timeout()), this, SLOT(realtimeData()));
-    dataTimer->start(100); // Interval 0 means to refresh as fast as possible
+void MainWindow::pres_plot()
+{
+    ui->pressure_plot->addGraph();
+    ui->pressure_plot->graph(0)->setPen(QPen(QColor(40, 255, 60))); // green line
+    ui->pressure_plot->xAxis->setLabel("Time");
+    ui->pressure_plot->yAxis->setLabel("Value");
+    ui->pressure_plot->addGraph();
+    ui->pressure_plot->graph(1)->setPen(QPen(QColor(40, 110, 200))); // blue line
+
+    ui->pressure_plot->legend->setVisible(true);
+    ui->pressure_plot->legend->setBrush(QColor(255, 255, 255, 150));
+    ui->pressure_plot->graph(0)->setName("Pressure");
+    ui->pressure_plot->graph(1)->setName("Altitude");
+
+    QSharedPointer<QCPAxisTickerTime> timeTicker(new QCPAxisTickerTime);
+    timeTicker->setTimeFormat("%s");
+    ui->pressure_plot->xAxis->setTicker(timeTicker);
+    ui->pressure_plot->axisRect()->setupFullAxesBox();
+    ui->pressure_plot->yAxis->setRange(0, 40);
+
+    // make left and bottom axes transfer their ranges to right and top axes:
+    connect(ui->pressure_plot->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->pressure_plot->xAxis2, SLOT(setRange(QCPRange)));
+    connect(ui->pressure_plot->yAxis, SIGNAL(rangeChanged(QCPRange)), ui->pressure_plot->yAxis2, SLOT(setRange(QCPRange)));
 }
 
 void MainWindow::realtimeData()
@@ -83,13 +111,19 @@ void MainWindow::realtimeData()
     {
       // add data to lines:
       ui->temperature_plot->graph(0)->addData(key, qSin(key)+qrand()/(double)RAND_MAX*1*qSin(key/0.3843));
+      ui->pressure_plot->graph(0)->addData(key, (qrand()%40));
+      ui->pressure_plot->graph(1)->addData(key, (qrand()%40));
       // rescale value (vertical) axis to fit the current data:
       ui->temperature_plot->graph(0)->rescaleValueAxis();
+      ui->pressure_plot->graph(0)->rescaleValueAxis();
+      ui->pressure_plot->graph(1)->rescaleValueAxis();
       lastPointKey = key;
     }
-    // make key axis range scroll with the data (at a constant range size of 8):
-    ui->temperature_plot->xAxis->setRange(key, 8, Qt::AlignRight);
+    // make key axis range scroll with the data (at a constant range size of 10):
+    ui->temperature_plot->xAxis->setRange(key, 10, Qt::AlignRight);
     ui->temperature_plot->replot();
+    ui->pressure_plot->xAxis->setRange(key, 10, Qt::AlignRight);
+    ui->pressure_plot->replot();
 
     // calculate frames per second:
     static double lastFpsKey;
@@ -118,6 +152,13 @@ void MainWindow::ReadSerial()
 void MainWindow::WriteData(const QByteArray &data)
 {
     serial->write(data);
+}
+
+void MainWindow::TickTimer(int interval){
+    // setup a timer that repeatedly calls MainWindow::realtimeData:
+    QTimer *dataTimer = new QTimer(this);
+    connect(dataTimer, SIGNAL(timeout()), this, SLOT(realtimeData()));
+    dataTimer->start(interval); // Interval 0 means to refresh as fast as possible
 }
 
 MainWindow::~MainWindow()

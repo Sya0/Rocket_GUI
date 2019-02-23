@@ -25,6 +25,8 @@ private slots:
     void realtimeData();
     void ReadSerial();    
     void WriteData(const QByteArray &data);
+    void pres_plot();
+    void TickTimer(int interval);
 
 private:
     Ui::MainWindow *ui;
