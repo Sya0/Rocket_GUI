@@ -6,7 +6,9 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    ui->temp_lcd->display("-----");
+    ui->temp_lcd->display("23");
+    ui->pressure_lcd->display("1025");
+    ui->altitude_lcd->display("3");
     temp_plot();    // add plot func. to constructor to plot graphs at the beginning
     pres_plot();
     TickTimer(100);
@@ -166,4 +168,3 @@ MainWindow::~MainWindow()
     delete ui;
     serial->close();
 }
-
