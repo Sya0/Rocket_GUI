@@ -10,7 +10,7 @@ int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
     MainWindow w;
-    w.setFixedSize(850,600);
+    w.setFixedSize(850,400);
     w.setWindowTitle("Rocket GUI");
     w.show();
 
