@@ -8,7 +8,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     temp_plot();    // add plot func. to constructor to plot graphs at the beginning
     pres_plot();
-    TickTimer(1000);
+    connect(dataTimer, SIGNAL(timeout()), this, SLOT(realtimeData()));
 
     stm_available = false;
     stm_port_name = "";
@@ -16,6 +16,8 @@ MainWindow::MainWindow(QWidget *parent) :
     temperature = 0;
     pressure = 0;
     altitude = 0;
+    latitude = "--.------";
+    longtitude = "--.-------";
     serial = new QSerialPort(this);
 
     /*qDebug() << "Number of available ports: " << QSerialPortInfo::availablePorts().length();
@@ -53,7 +55,6 @@ MainWindow::MainWindow(QWidget *parent) :
         serial->open(QIODevice::ReadWrite);
         if (!serial->isOpen())
                 qDebug() << "Open failed";
-        //serial->write("Selam");
         // This signal is emitted once every time new data is available for reading from the device's current read channel
         connect(serial, SIGNAL(readyRead()), this, SLOT(ReadSerial()));
     }
@@ -77,7 +78,7 @@ void MainWindow::temp_plot()
     timeTicker->setTimeFormat("%s");
     ui->temperature_plot->xAxis->setTicker(timeTicker);
     ui->temperature_plot->axisRect()->setupFullAxesBox();
-    ui->temperature_plot->yAxis->setRange(0, 40);
+    ui->temperature_plot->yAxis->setRange(0, 50);
 
     // make left and bottom axes transfer their ranges to right and top axes:
     connect(ui->temperature_plot->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->temperature_plot->xAxis2, SLOT(setRange(QCPRange)));
@@ -102,7 +103,7 @@ void MainWindow::pres_plot()
     timeTicker->setTimeFormat("%s");
     ui->pressure_plot->xAxis->setTicker(timeTicker);
     ui->pressure_plot->axisRect()->setupFullAxesBox();
-    ui->pressure_plot->yAxis->setRange(-500, 1000);
+    ui->pressure_plot->yAxis->setRange(-100, 10000);
 
     // make left and bottom axes transfer their ranges to right and top axes:
     connect(ui->pressure_plot->xAxis, SIGNAL(rangeChanged(QCPRange)), ui->pressure_plot->xAxis2, SLOT(setRange(QCPRange)));
@@ -114,8 +115,8 @@ void MainWindow::realtimeData()
     ui->pressure_lcd->display(pressure);
     ui->temp_lcd->display(temperature);
     ui->altitude_lcd->display(altitude);
-    ui->gps_lcd->display("41.008001");
-    ui->gps_lcd_2->display("29.137471");
+    ui->gps_lcd->display(latitude);
+    ui->gps_lcd_2->display(longtitude);
 
     static QTime time(QTime::currentTime());
     // calculate two new data points:
@@ -136,16 +137,16 @@ void MainWindow::realtimeData()
       lastPointKey = key;
     }
     // make key axis range scroll with the data (at a constant range size of 10):
-    ui->temperature_plot->xAxis->setRange(key, 10, Qt::AlignRight);
+    ui->temperature_plot->xAxis->setRange(key, 15, Qt::AlignRight);
     ui->temperature_plot->replot();
-    ui->pressure_plot->xAxis->setRange(key, 10, Qt::AlignRight);
+    ui->pressure_plot->xAxis->setRange(key, 15, Qt::AlignRight);
     ui->pressure_plot->replot();
 
     // calculate frames per second:
     static double lastFpsKey;
     static int frameCount;
     ++frameCount;
-    if (key-lastFpsKey > 1) // average fps over 1 seconds
+    if (key-lastFpsKey > 1.5) // average fps over 1 seconds
     {
       ui->statusBar->showMessage(
             QString("%1 FPS, Total Data points: %2")
@@ -192,19 +193,31 @@ void MainWindow::ReadSerial()
             }
             qDebug() << "altitude" << altitude;
         }
+        else if(opcode == 4) {
+            if(data.length() == 10){
+                latitude = QString::fromStdString(data.toStdString());
+                latitude.remove(0,1);
+                qDebug() << "latitude" << latitude;
+            }
+        }
+        else if(opcode == 5) {
+            if(data.length() == 11){
+                longtitude = QString::fromStdString(data.toStdString());
+                longtitude.remove(0,1);
+                qDebug() << "longitude" << longtitude;
+            }
+        }
     }
 }
 
-void MainWindow::WriteData(const QByteArray &data)
+void MainWindow::on_pushButton_clicked()
 {
-    serial->write(data);
+    dataTimer->start(1000);
 }
 
-void MainWindow::TickTimer(int interval){
-    // setup a timer that repeatedly calls MainWindow::realtimeData:
-    QTimer *dataTimer = new QTimer(this);
-    connect(dataTimer, SIGNAL(timeout()), this, SLOT(realtimeData()));
-    dataTimer->start(interval); // Interval 0 means to refresh as fast as possible
+void MainWindow::on_pushButton_2_clicked()
+{
+    dataTimer->stop();
 }
 
 MainWindow::~MainWindow()
